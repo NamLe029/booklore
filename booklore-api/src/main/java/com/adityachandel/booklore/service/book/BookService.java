@@ -19,15 +19,14 @@ import com.adityachandel.booklore.util.FileService;
 import com.adityachandel.booklore.util.FileUtils;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
+import org.springframework.core.io.*;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,6 +35,7 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -239,13 +239,20 @@ public class BookService {
         return bookDownloadService.downloadBook(bookId);
     }
 
-    public ResponseEntity<ByteArrayResource> getBookContent(long bookId) throws IOException {
+    public ResponseEntity<InputStreamResource> getBookContent(long bookId) throws IOException {
         BookEntity bookEntity = bookRepository.findById(bookId).orElseThrow(() -> ApiError.BOOK_NOT_FOUND.createException(bookId));
-        try (FileInputStream inputStream = new FileInputStream(FileUtils.getBookFullPath(bookEntity))) {
-            return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .body(new ByteArrayResource(inputStream.readAllBytes()));
-        }
+        String bookPath = FileUtils.getBookFullPath(bookEntity);
+        Instant lastModified = null;
+
+        try {
+            lastModified = Files.getLastModifiedTime(Paths.get(bookPath)).toInstant();
+        } catch (IOException ignored) {}
+
+        return ResponseEntity.ok()
+            .cacheControl(CacheControl.noCache())
+            .lastModified(lastModified != null ? lastModified : Instant.now()) // Fallback to now
+            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+            .body(new InputStreamResource(new FileInputStream(bookPath)));
     }
 
     @Transactional

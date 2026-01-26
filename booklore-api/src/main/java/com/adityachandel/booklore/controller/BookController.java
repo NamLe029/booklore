@@ -27,6 +27,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.AllArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -102,7 +103,7 @@ public class BookController {
     @ApiResponse(responseCode = "200", description = "Book content returned successfully")
     @GetMapping("/{bookId}/content")
     @CheckBookAccess(bookIdParam = "bookId")
-    public ResponseEntity<ByteArrayResource> getBookContent(@Parameter(description = "ID of the book") @PathVariable long bookId) throws IOException {
+    public ResponseEntity<InputStreamResource> getBookContent(@Parameter(description = "ID of the book") @PathVariable long bookId) throws IOException {
         return bookService.getBookContent(bookId);
     }
 

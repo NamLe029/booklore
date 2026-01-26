@@ -21,10 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
+import org.springframework.core.io.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -324,9 +321,10 @@ class BookServiceTest {
         Files.write(path, "hello".getBytes());
         try (MockedStatic<FileUtils> fileUtilsMock = mockStatic(FileUtils.class)) {
             fileUtilsMock.when(() -> FileUtils.getBookFullPath(entity)).thenReturn(path.toString());
-            ResponseEntity<ByteArrayResource> response = bookService.getBookContent(10L);
+            ResponseEntity<InputStreamResource> response = bookService.getBookContent(10L);
             assertEquals(HttpStatus.OK, response.getStatusCode());
-            assertArrayEquals("hello".getBytes(), response.getBody().getByteArray());
+            assertNotNull(response.getBody());
+            assertArrayEquals("hello".getBytes(), response.getBody().getContentAsByteArray());
         } finally {
             Files.deleteIfExists(path);
         }
