@@ -130,7 +130,7 @@ public class BookController {
             @Parameter(description = "ID of the book") @PathVariable long bookId,
             @Parameter(description = "Optional book type for alternative format (e.g., EPUB, PDF, MOBI)") @RequestParam(required = false) String bookType) throws IOException {
         return bookService.getBookContent(bookId, bookType);
-
+    }
 
     @Operation(summary = "Download book", description = "Download the book file. Requires download permission or admin.")
     @ApiResponses({
