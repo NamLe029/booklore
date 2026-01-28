@@ -315,7 +315,7 @@ class BookServiceTest {
     }
 
     @Test
-    void getBookContent_returnsByteArrayResource() throws Exception {
+    void getBookContent_returnsInputStreamResource() throws Exception {
         BookEntity entity = new BookEntity();
         entity.setId(10L);
         when(bookRepository.findById(10L)).thenReturn(Optional.of(entity));
