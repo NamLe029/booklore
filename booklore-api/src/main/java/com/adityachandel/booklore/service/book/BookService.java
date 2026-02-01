@@ -248,7 +248,7 @@ public class BookService {
         } catch (IOException ignored) {}
 
         return ResponseEntity.ok()
-                .cacheControl(CacheControl.noCache())
+                .cacheControl(CacheControl.noCache().cachePrivate())
                 .lastModified(lastModified != null ? lastModified : Instant.now())
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(new InputStreamResource(new FileInputStream(filePath)));
