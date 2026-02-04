@@ -264,11 +264,11 @@ public class BookService {
         bookDownloadService.downloadAllBookFiles(bookId, response);
     }
 
-    public ResponseEntity<InputStreamResource> getBookContent(long bookId) throws IOException {
+    public ResponseEntity<Resource> getBookContent(long bookId) throws IOException {
         return getBookContent(bookId, null);
     }
 
-    public ResponseEntity<InputStreamResource> getBookContent(long bookId, String bookType) throws IOException {
+    public ResponseEntity<Resource> getBookContent(long bookId, String bookType) throws IOException {
         BookEntity bookEntity = bookRepository.findById(bookId).orElseThrow(() -> ApiError.BOOK_NOT_FOUND.createException(bookId));
         String filePath;
         Instant lastModified = null;
@@ -285,10 +285,12 @@ public class BookService {
 
         try {
             lastModified = Files.getLastModifiedTime(Paths.get(filePath)).toInstant();
-        } catch (IOException ignored) {}
+        } catch (IOException e) {
+            log.warn("Failed to get last modified time for: {}", filePath, e);
+        }
 
         return ResponseEntity.ok()
-                .cacheControl(CacheControl.noCache())
+                .cacheControl(CacheControl.noCache().cachePrivate())
                 .lastModified(lastModified != null ? lastModified : Instant.now()) // Fallback to now
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(new InputStreamResource(new FileInputStream(filePath)));
