@@ -139,12 +139,11 @@ public class BookController {
     })
     @GetMapping("/{bookId}/content")
     @CheckBookAccess(bookIdParam = "bookId")
-    public void getBookContent(
+    public ResponseEntity<Resource> getBookContent(
             @Parameter(description = "ID of the book") @PathVariable long bookId,
-            @Parameter(description = "Optional book type for alternative format (e.g., EPUB, PDF, MOBI)") @RequestParam(required = false) String bookType,
-            HttpServletRequest request,
-            HttpServletResponse response) throws java.io.IOException {
-        bookService.streamBookContent(bookId, bookType, request, response);
+            @Parameter(description = "Optional book type for alternative format (e.g., EPUB, PDF, MOBI)") @RequestParam(required = false) String bookType
+            ) {
+        return bookService.getBookContent(bookId, bookType);
     }
 
     @Operation(summary = "Download book", description = "Download the book file. Requires download permission or admin.")

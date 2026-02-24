@@ -29,9 +29,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +39,7 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.booklore.model.enums.AuditAction;
@@ -324,11 +323,23 @@ public class BookService {
         if (!file.exists()) {
             throw ApiError.FILE_NOT_FOUND.createException(filePath);
         }
-        Resource resource = new FileSystemResource(file);
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .contentLength(file.length())
-                .body(resource);
+        Instant lastModified = null;
+        try {
+            lastModified = Files.getLastModifiedTime(Path.of(filePath)).toInstant();
+        } catch (IOException e) {
+            log.warn("Failed to retrieve last modified time: {}", filePath);
+        }
+
+        ResponseEntity.BodyBuilder responseBuilder = ResponseEntity.ok();
+
+        if (lastModified != null) {
+            responseBuilder.cacheControl(CacheControl.noCache().cachePrivate());
+            responseBuilder.lastModified(lastModified);
+        }
+
+        return responseBuilder
+                .contentType(MediaTypeFactory.getMediaType(filePath).orElse(MediaType.APPLICATION_OCTET_STREAM))
+                .body(new FileSystemResource(file));
     }
 
     public void streamBookContent(long bookId, String bookType, HttpServletRequest request, HttpServletResponse response) throws IOException {
