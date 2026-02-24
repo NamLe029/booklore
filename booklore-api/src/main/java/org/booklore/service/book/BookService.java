@@ -29,10 +29,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
-import org.springframework.http.CacheControl;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -340,8 +337,8 @@ public class BookService {
             responseBuilder.lastModified(lastModified);
         }
 
-        return responseBuilder.contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .contentLength(file.length())
+        return responseBuilder
+                .contentType(MediaTypeFactory.getMediaType(filePath).orElse(MediaType.APPLICATION_OCTET_STREAM))
                 .body(new FileSystemResource(file));
     }
 
