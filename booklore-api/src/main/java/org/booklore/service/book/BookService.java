@@ -323,14 +323,9 @@ public class BookService {
         if (!file.exists()) {
             throw ApiError.FILE_NOT_FOUND.createException(filePath);
         }
-        Instant lastModified = null;
-        try {
-            lastModified = Files.getLastModifiedTime(Path.of(filePath)).toInstant();
-        } catch (IOException e) {
-            log.warn("Failed to retrieve last modified time: {}", filePath);
-        }
 
         ResponseEntity.BodyBuilder responseBuilder = ResponseEntity.ok();
+        Instant lastModified = FileUtils.getFileLastModified(filePath);
 
         if (lastModified != null) {
             responseBuilder.cacheControl(CacheControl.noCache().cachePrivate());
@@ -340,36 +335,6 @@ public class BookService {
         return responseBuilder
                 .contentType(MediaTypeFactory.getMediaType(filePath).orElse(MediaType.APPLICATION_OCTET_STREAM))
                 .body(new FileSystemResource(file));
-    }
-
-    public void streamBookContent(long bookId, String bookType, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        BookEntity bookEntity = bookRepository.findById(bookId).orElseThrow(() -> ApiError.BOOK_NOT_FOUND.createException(bookId));
-        String filePath;
-        if (bookType != null) {
-            BookFileType requestedType = BookFileType.valueOf(bookType.toUpperCase());
-            BookFileEntity bookFile = bookEntity.getBookFiles().stream()
-                    .filter(bf -> bf.getBookType() == requestedType)
-                    .findFirst()
-                    .orElseThrow(() -> ApiError.FILE_NOT_FOUND.createException("No file of type " + bookType + " found for book"));
-            filePath = bookFile.getFullFilePath().toString();
-        } else {
-            filePath = FileUtils.getBookFullPath(bookEntity);
-        }
-
-        Path path = Paths.get(filePath);
-        String fileName = path.getFileName().toString();
-        String extension = fileName.contains(".") ? fileName.substring(fileName.lastIndexOf('.') + 1) : "";
-        String contentType = switch (extension.toLowerCase()) {
-            case "pdf" -> "application/pdf";
-            case "epub" -> "application/epub+zip";
-            case "mobi", "azw3" -> "application/x-mobipocket-ebook";
-            case "cbz" -> "application/vnd.comicbook+zip";
-            case "cbr" -> "application/vnd.comicbook-rar";
-            case "fb2" -> "application/x-fictionbook+xml";
-            default -> "application/octet-stream";
-        };
-
-        fileStreamingService.streamWithRangeSupport(path, contentType, request, response);
     }
 
     @Transactional

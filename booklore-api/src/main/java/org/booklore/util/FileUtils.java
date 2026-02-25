@@ -1,5 +1,6 @@
 package org.booklore.util;
 
+import jakarta.annotation.Nullable;
 import org.booklore.model.dto.Book;
 import org.booklore.model.entity.BookEntity;
 import org.booklore.model.entity.BookFileEntity;
@@ -10,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -54,6 +56,17 @@ public class FileUtils {
                         .getParent())
                 .map(path -> path.toString().replace("\\", "/"))
                 .orElse("");
+    }
+
+    public @Nullable Instant getFileLastModified(String filePath) { return getFileLastModified(Path.of(filePath)); }
+
+    public @Nullable Instant getFileLastModified(Path filePath) {
+        try {
+            return Files.getLastModifiedTime(filePath).toInstant();
+        } catch (IOException e) {
+            log.warn("Failed to read last modified time of file {}", filePath, e);
+            return null;
+        }
     }
 
     public Long getFileSizeInKb(BookEntity bookEntity) {

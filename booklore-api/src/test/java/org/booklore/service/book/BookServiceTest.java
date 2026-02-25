@@ -28,13 +28,17 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -331,6 +335,28 @@ class BookServiceTest {
             ResponseEntity<Resource> response = bookService.getBookContent(10L);
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertArrayEquals("hello".getBytes(), response.getBody().getInputStream().readAllBytes());
+        } finally {
+            Files.deleteIfExists(path);
+        }
+    }
+
+    @Test
+    void getBookContent_includeCacheHeaders() throws Exception {
+        BookEntity entity = new BookEntity();
+        entity.setId(10L);
+        when(bookRepository.findById(10L)).thenReturn(Optional.of(entity));
+        Path path = Paths.get("/tmp/bookcontent.txt");
+        Files.write(path, "hello".getBytes());
+        try (MockedStatic<FileUtils> fileUtilsMock = mockStatic(FileUtils.class)) {
+            fileUtilsMock.when(() -> FileUtils.getBookFullPath(entity)).thenReturn(path.toString());
+            fileUtilsMock.when(() -> FileUtils.getFileLastModified(path.toString())).thenReturn(Instant.ofEpochMilli(123 * 1000L));
+            ResponseEntity<Resource> response = bookService.getBookContent(10L);
+
+            assertNotNull(response.getHeaders().getCacheControl());
+            String cacheControl = response.getHeaders().getCacheControl().toLowerCase();
+            assertTrue(cacheControl.contains("no-cache"));
+            assertTrue(cacheControl.contains("private"));
+            assertEquals(123L, response.getHeaders().getLastModified() / 1000);
         } finally {
             Files.deleteIfExists(path);
         }
